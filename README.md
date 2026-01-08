@@ -86,6 +86,7 @@ Contributions are welcome! Feel free to:
 
 For questions or support, reach out via:
 - Telegram: [@localtools_bot](https://t.me/localtools_bot)
+- Email: [arreharsh@gmail.com](mailto:arreharsh@gmail.com)
 - GitHub Issues
 
 ## 📄 License
