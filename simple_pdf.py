@@ -1,14 +1,26 @@
-
-
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT
+from reportlab.lib. styles import getSampleStyleSheet, ParagraphStyle
+from reportlab. lib.enums import TA_LEFT, TA_RIGHT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase. ttfonts import TTFont
 from datetime import datetime
 import os
 
+# Register DejaVu font (₹ symbol support ke liye)
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'DejaVuSans.ttf')
+FONT_PATH_BOLD = os.path.join(os.path.dirname(__file__), 'fonts', 'DejaVuSans-Bold.ttf')
+
+if os.path.exists(FONT_PATH):
+    pdfmetrics.registerFont(TTFont('DejaVuSans', FONT_PATH))
+    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', FONT_PATH_BOLD))
+    DEFAULT_FONT = 'DejaVuSans'
+    DEFAULT_FONT_BOLD = 'DejaVuSans-Bold'
+else:
+    DEFAULT_FONT = 'Helvetica'
+    DEFAULT_FONT_BOLD = 'Helvetica-Bold'
 
 def format_indian_currency(amount):
     """
@@ -38,10 +50,18 @@ def format_indian_currency(amount):
 
 def format_currency(amount, currency):
     """Format currency with proper symbol and numbering"""
-    if currency == "INR":
-        return f"INR {format_indian_currency(amount)}"
+    symbols = {
+        'INR':  '₹',
+        'USD': '$',
+        'EUR':  '€',
+        'GBP': '£'
+    }
+    symbol = symbols.get(currency, currency)
+    
+    if currency == "INR": 
+        return f"{symbol} {format_indian_currency(amount)}"
     else:
-        return f"{currency} {amount:,.2f}"
+        return f"{symbol} {amount:,. 2f}"
 
 
 def format_date(date_str):
@@ -106,7 +126,7 @@ def generate_pdf(data):
         fontSize=32,
         textColor=primary_color,
         spaceAfter=20,
-        fontName='Helvetica-Bold'
+        fontName=DEFAULT_FONT_BOLD
     )
     elements.append(Paragraph("INVOICE", title_style))
     elements.append(Spacer(1, 10*mm))
@@ -122,17 +142,17 @@ def generate_pdf(data):
     
     meta_table = Table(meta_data, colWidths=[60*mm, 50*mm, 60*mm])
     meta_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 3), (2, 3), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (0, 0), DEFAULT_FONT_BOLD),
+        ('FONTNAME', (2, 0), (2, 0), DEFAULT_FONT_BOLD),
+        ('FONTNAME', (2, 3), (2, 3), DEFAULT_FONT_BOLD),
         ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('FONTSIZE', (2, 3), (2, 3), 9),
         ('TEXTCOLOR', (0, 0), (0, 0), colors.Color(0.4, 0.4, 0.4)),
         ('TEXTCOLOR', (2, 0), (2, 0), colors.Color(0.4, 0.4, 0.4)),
         ('TEXTCOLOR', (2, 3), (2, 3), colors.Color(0.4, 0.4, 0.4)),
-        ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 1), (2, 1), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 4), (2, 4), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (0, 1), DEFAULT_FONT_BOLD),
+        ('FONTNAME', (2, 1), (2, 1), DEFAULT_FONT_BOLD),
+        ('FONTNAME', (2, 4), (2, 4), DEFAULT_FONT_BOLD),
         ('FONTSIZE', (0, 1), (-1, -1), 12),
         ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
     ]))
@@ -192,7 +212,7 @@ def generate_pdf(data):
         # Header styling
         ('BACKGROUND', (0, 0), (-1, 0), bg_color),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, 0), DEFAULT_FONT_BOLD),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
@@ -251,7 +271,7 @@ def generate_pdf(data):
     total_table = Table(total_data, colWidths=[50*mm, 50*mm, 35*mm, 35*mm])
     total_table.setStyle(TableStyle([
         ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
-        ('FONTNAME', (2, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (-1, -1), DEFAULT_FONT_BOLD),
         ('FONTSIZE', (2, 0), (-1, -1), 14),
         ('TEXTCOLOR', (2, 0), (-1, -1), primary_color),
         ('LINEABOVE', (2, 0), (-1, 0), 2, primary_color),
@@ -268,7 +288,7 @@ def generate_pdf(data):
             'CustomHeading',
             parent=styles['Normal'],
             fontSize=9,
-            fontName='Helvetica-Bold',
+            fontName=DEFAULT_FONT_BOLD,
             spaceAfter=2
         )
         
