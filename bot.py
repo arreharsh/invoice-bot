@@ -244,7 +244,7 @@ async def currency_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ Invalid currency. Please use /start to try again.")
             return ConversationHandler.END
         
-        context.user_data['currency'] = currency_data['symbol']
+        context.user_data['currency'] = currency_code
         context.user_data['currency_code'] = currency_code
         
         await safe_edit_message(

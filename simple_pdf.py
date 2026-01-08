@@ -169,14 +169,14 @@ def generate_pdf(data):
     )
     
     # Build FROM text
-    from_text = f"<b>FROM</b><br/><font size=12>{data['from_name']}</font>"
+    from_text = f"<b>FROM</b><br/><br/><font size=12>{data['from_name']}</font>"
     if data.get('from_email'):
         from_text += f"<br/>{data['from_email']}"
     if data.get('from_address'):
         from_text += f"<br/>{data['from_address']}"
     
     # Build BILL TO text
-    bill_to_text = f"<b>BILL TO</b><br/><font size=12>{data['bill_to_name']}</font>"
+    bill_to_text = f"<b>BILL TO</b><br/><br/><font size=12>{data['bill_to_name']}</font>"
     if data.get('bill_to_email'):
         bill_to_text += f"<br/>{data['bill_to_email']}"
     if data.get('bill_to_address'):
@@ -213,6 +213,7 @@ def generate_pdf(data):
         ('BACKGROUND', (0, 0), (-1, 0), bg_color),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('FONTNAME', (0, 0), (-1, 0), DEFAULT_FONT_BOLD),
+        ('FONTNAME', (0, 1), (-1, -1), DEFAULT_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
@@ -258,6 +259,7 @@ def generate_pdf(data):
     totals_table = Table(totals_data, colWidths=[50*mm, 50*mm, 35*mm, 35*mm])
     totals_table.setStyle(TableStyle([
         ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, -1), DEFAULT_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
