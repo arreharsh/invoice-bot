@@ -807,79 +807,73 @@ async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in unknown_message: {e}")
 
 
-def main():
-    """Start the bot"""
-    try:
-        # Create temp folder if doesn't exist
-        os.makedirs('temp', exist_ok=True)
-        
-        # Create application with error handlers
-        application = Application.builder().token(BOT_TOKEN).build()
-        
-        # Conversation handler with timeout
-        conv_handler = ConversationHandler(
-            entry_points=[
-                CommandHandler('start', start),
-                CallbackQueryHandler(button_handler, pattern='^new_invoice$')
-            ],
-            states={
-                CURRENCY: [CallbackQueryHandler(currency_selected, pattern='^curr_')],
-                INVOICE_NO: [MessageHandler(filters.TEXT & ~filters.COMMAND, invoice_number)],
-                FROM_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_name)],
-                FROM_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_email)],
-                FROM_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_address)],
-                BILL_TO_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_name)],
-                BILL_TO_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_email)],
-                BILL_TO_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_address)],
-                ITEM_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_description)],
-                ITEM_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_quantity)],
-                ITEM_RATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_rate)],
-                MORE_ITEMS: [CallbackQueryHandler(more_items_handler)],
-                TAX: [MessageHandler(filters.TEXT & ~filters.COMMAND, tax_input)],
-                DISCOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, discount_input)],
-                NOTES: [MessageHandler(filters.TEXT & ~filters.COMMAND, notes_input)],
-                STYLE: [CallbackQueryHandler(style_selection, pattern='^style_')],
-                CONFIRM: [CallbackQueryHandler(generate_pdf_handler)],
-                ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, conversation_timeout)]
-            },
-            fallbacks=[CommandHandler('cancel', cancel)],
-            conversation_timeout=CONVERSATION_TIMEOUT
-        )
-        
-        # Add handlers
-        application.add_handler(conv_handler)
-        application.add_handler(CommandHandler('start', start))
-        application.add_handler(CallbackQueryHandler(button_handler))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
-        
-        # Global error handler
-        application.add_error_handler(error_handler)
-        
-        # Start bot
-        logger.info("🚀 Invoice Bot Started!")
-        print("=" * 50)
-        print("🚀 INVOICE BOT STARTED SUCCESSFULLY!")
-        print("=" * 50)
-        print("✅ Bot is running in production mode")
-        print("📊 All error handlers active")
-        print("⏰ Session timeout: 15 minutes")
-        print("🔒 Rate limiting enabled")
-        print("=" * 50)
-        print("Press Ctrl+C to stop the bot")
-        print("=" * 50)
-        
-        # Run bot with proper error handling
-        application.run_polling(
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True,
-            close_loop=False
-        )
-    
-    except Exception as e:
-        logger.critical(f"Failed to start bot: {e}")
-        print(f"❌ CRITICAL ERROR: {e}")
-        print("Please check your BOT_TOKEN and internet connection")
+# ===============================
+# 🚀 WEBHOOK MODE 
+# ===============================
+
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+telegram_app = Application.builder().token(BOT_TOKEN).build()
 
 
-if __name__ == '__main__':
-    main()
+def setup_handlers(application):
+    conv_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('start', start),
+            CallbackQueryHandler(button_handler, pattern='^new_invoice$')
+        ],
+        states={
+            CURRENCY: [CallbackQueryHandler(currency_selected, pattern='^curr_')],
+            INVOICE_NO: [MessageHandler(filters.TEXT & ~filters.COMMAND, invoice_number)],
+            FROM_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_name)],
+            FROM_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_email)],
+            FROM_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, from_address)],
+            BILL_TO_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_name)],
+            BILL_TO_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_email)],
+            BILL_TO_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, bill_to_address)],
+            ITEM_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_description)],
+            ITEM_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_quantity)],
+            ITEM_RATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, item_rate)],
+            MORE_ITEMS: [CallbackQueryHandler(more_items_handler)],
+            TAX: [MessageHandler(filters.TEXT & ~filters.COMMAND, tax_input)],
+            DISCOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, discount_input)],
+            NOTES: [MessageHandler(filters.TEXT & ~filters.COMMAND, notes_input)],
+            STYLE: [CallbackQueryHandler(style_selection, pattern='^style_')],
+            CONFIRM: [CallbackQueryHandler(generate_pdf_handler)],
+            ConversationHandler.TIMEOUT: [MessageHandler(filters.ALL, conversation_timeout)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+        conversation_timeout=CONVERSATION_TIMEOUT
+    )
+
+    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+    application.add_error_handler(error_handler)
+
+
+@app.on_event("startup")
+async def startup():
+    os.makedirs('temp', exist_ok=True)
+    setup_handlers(telegram_app)
+    await telegram_app.initialize()
+    await telegram_app.start()
+    await telegram_app.bot.set_webhook(
+        url="https://invoice-bot-af6a.onrender.com/webhook"
+    )
+    print("🚀 Webhook Active")
+
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return {"ok": True}
+
+
+@app.get("/")
+async def health():
+    return {"status": "Bot Running"}
